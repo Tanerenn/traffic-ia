@@ -1,0 +1,64 @@
+
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Akıllı Trafik Simülasyonu</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🚦 Akıllı Trafik Simülasyonu</h1>
+    <p class="subtitle">Yoğunluğa duyarlı adaptif trafik ışığı sistemi</p>
+    
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">Aktif Araçlar</div>
+        <div class="stat-value" id="activeCount">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Geçen Araçlar</div>
+        <div class="stat-value" id="passedCount">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Simülasyon Zamanı</div>
+        <div class="stat-value" id="simTime">0s</div>
+      </div>
+      <div class="stat-box stat-ns">
+        <div class="stat-label">Kuzey-Güney Yoğunluk</div>
+        <div class="stat-value" id="nsCount">0</div>
+      </div>
+      <div class="stat-box stat-ew">
+        <div class="stat-label">Doğu-Batı Yoğunluk</div>
+        <div class="stat-value" id="ewCount">0</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn">▶ Başlat</button>
+      <button id="resetBtn">↻ Sıfırla</button>
+      <label class="switch-label">
+        <input type="checkbox" id="smartMode" checked>
+        <span>🧠 Akıllı Mod</span>
+      </label>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="canvas" width="900" height="700"></canvas>
+    </div>
+
+    <div class="info">
+      <h3>📋 Akıllı Trafik Sistemi Özellikleri</h3>
+      <p>🧠 <strong>Agresif Optimizasyon:</strong> Karşı tarafta 2+ araç varsa hızla değişir</p>
+      <p>📊 <strong>Gerçek Zamanlı Analiz:</strong> Her yönün bekleyen araç sayısını sürekli izler</p>
+      <p>⚡ <strong>Hızlı Tepki:</strong> Minimum 8s, maksimum 25s yeşil ışık - boş yolda bekleme yok</p>
+      <p>🎯 <strong>Yoğunluk Öncelikli:</strong> Tek araçlar uzun süre bekletmez, yoğun taraf öncelikli</p>
+      <p>✅ <strong>Tam Güvenlik:</strong> Sarı ışık geçişi ve çarpışma önleme sistemi</p>
+      <p>🔄 <strong>Mod Seçimi:</strong> Akıllı mod veya klasik sabit zamanlı mod</p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
