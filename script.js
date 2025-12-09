@@ -26,10 +26,10 @@ const INTERSECTION = {
 
 // Akıllı trafik ışığı sistemi
 const SMART_LIGHT = {
-  currentGreen: 'NS', // 'NS' veya 'EW'
+  currentGreen: 'NS',
   timeInCurrentState: 0,
-  minGreenTime: 8, // Minimum yeşil ışık süresi (daha kısa)
-  maxGreenTime: 25, // Maximum yeşil ışık süresi (daha kısa)
+  minGreenTime: 8,
+  maxGreenTime: 25,
   yellowTime: 3,
   isYellow: false,
   yellowStartTime: 0
@@ -47,10 +47,10 @@ const CYCLE_TOTAL = CLASSIC_CYCLE.NS_GREEN + CLASSIC_CYCLE.NS_YELLOW +
 
 // Gerçek trafik verileri
 const TRAFFIC_DATA = [
-  { time: 1, direction: 'N', count: 10   },
-  { time: 5, direction: 'N', count: 2 },
-  { time: 10, direction: 'E', count: 3 },
-  { time: 26, direction: 'N', count: 2 },
+  { time: 1, direction: 'N', count: 10  },
+  { time: 3, direction: 'W', count: 10},
+  { time: 3, direction: 'E', count: 10 },
+  { time: 3, direction: 'S', count: 2 },
   { time: 27, direction: 'E', count: 2 },
   { time: 29, direction: 'E', count: 1 },
   { time: 31, direction: 'E', count: 2 },
@@ -69,8 +69,8 @@ const TRAFFIC_DATA = [
   { time: 126, direction: 'E', count: 1 }
 ];
 
-let dataIndex = 0;
-let nextSpawnTime = TRAFFIC_DATA[0].time;
+let processedSpawns = new Set();
+let spawnQueue = [];
 
 // Yoğunluk analizi
 function analyzeTrafficDensity() {
@@ -94,47 +94,33 @@ function analyzeTrafficDensity() {
 function updateSmartLights(dt) {
   const density = analyzeTrafficDensity();
   
-  // Sarı ışık durumu
   if (SMART_LIGHT.isYellow) {
     SMART_LIGHT.yellowStartTime += dt;
     if (SMART_LIGHT.yellowStartTime >= SMART_LIGHT.yellowTime) {
-      // Sarı ışık bitti, geç
       SMART_LIGHT.isYellow = false;
       SMART_LIGHT.yellowStartTime = 0;
       SMART_LIGHT.currentGreen = SMART_LIGHT.currentGreen === 'NS' ? 'EW' : 'NS';
       SMART_LIGHT.timeInCurrentState = 0;
     }
   } else {
-    // Yeşil ışık durumu
     SMART_LIGHT.timeInCurrentState += dt;
     
     const currentIsNS = SMART_LIGHT.currentGreen === 'NS';
     const currentWaiting = currentIsNS ? density.nsWaiting : density.ewWaiting;
     const otherWaiting = currentIsNS ? density.ewWaiting : density.nsWaiting;
     
-    // Işık değiştirme kararı
     let shouldSwitch = false;
     
-    // Minimum süre geçtiyse değerlendirmeye başla
     if (SMART_LIGHT.timeInCurrentState >= SMART_LIGHT.minGreenTime) {
-      // ÖNCELIK 1: Karşı tarafta 2+ araç varsa ve bu tarafta 0-1 araç varsa HEMEN değiştir
       if (otherWaiting >= 2 && currentWaiting <= 1) {
         shouldSwitch = true;
-      }
-      // ÖNCELIK 2: Karşı tarafta çok daha fazla yoğunluk varsa değiştir
-      else if (otherWaiting >= currentWaiting + 2 && otherWaiting >= 2) {
+      } else if (otherWaiting >= currentWaiting + 2 && otherWaiting >= 2) {
         shouldSwitch = true;
-      }
-      // ÖNCELIK 3: Bu tarafta hiç araç yok, karşıda var
-      else if (currentWaiting === 0 && otherWaiting > 0) {
+      } else if (currentWaiting === 0 && otherWaiting > 0) {
         shouldSwitch = true;
-      }
-      // ÖNCELIK 4: Bu tarafta tek araç var, karşıda daha fazla var
-      else if (currentWaiting === 1 && otherWaiting >= 3) {
+      } else if (currentWaiting === 1 && otherWaiting >= 3) {
         shouldSwitch = true;
-      }
-      // ÖNCELIK 5: Maximum süreye ulaşıldıysa değiştir (adalet için)
-      else if (SMART_LIGHT.timeInCurrentState >= SMART_LIGHT.maxGreenTime) {
+      } else if (SMART_LIGHT.timeInCurrentState >= SMART_LIGHT.maxGreenTime) {
         shouldSwitch = true;
       }
     }
@@ -145,7 +131,6 @@ function updateSmartLights(dt) {
     }
   }
   
-  // Işık durumunu döndür
   if (SMART_LIGHT.isYellow) {
     return {
       NS: SMART_LIGHT.currentGreen === 'NS' ? 'yellow' : 'red',
@@ -197,24 +182,24 @@ class Vehicle {
     switch(this.direction) {
       case 'N':
         this.x = CENTER_X - LANE_WIDTH - this.width / 2;
-        this.y = -80; // Ekranın hemen üstünden başla
+        this.y = -120; // Daha uzaktan başla
         this.stopLine = CENTER_Y - ROAD_WIDTH - stopMargin;
         this.exitLine = CENTER_Y + ROAD_WIDTH + 100;
         break;
       case 'S':
         this.x = CENTER_X + LANE_WIDTH - this.width / 2;
-        this.y = canvas.height + 80; // Ekranın hemen altından başla
+        this.y = canvas.height + 120;
         this.stopLine = CENTER_Y + ROAD_WIDTH + this.height + stopMargin;
         this.exitLine = CENTER_Y - ROAD_WIDTH - 100;
         break;
       case 'E':
-        this.x = canvas.width + 80; // Ekranın hemen sağından başla
+        this.x = canvas.width + 120;
         this.y = CENTER_Y - LANE_WIDTH - this.height / 2;
         this.stopLine = CENTER_X + ROAD_WIDTH + this.width + stopMargin;
         this.exitLine = CENTER_X - ROAD_WIDTH - 100;
         break;
       case 'W':
-        this.x = -80; // Ekranın hemen solundan başla
+        this.x = -120;
         this.y = CENTER_Y + LANE_WIDTH - this.height / 2;
         this.stopLine = CENTER_X - ROAD_WIDTH - stopMargin;
         this.exitLine = CENTER_X + ROAD_WIDTH + 100;
@@ -386,8 +371,13 @@ class Vehicle {
   }
   
   checkOffScreen() {
-    return this.x < -100 || this.x > canvas.width + 100 || 
-           this.y < -100 || this.y > canvas.height + 100;
+    // Araçları sadece kavşağı geçtikten SONRA ekran dışına çıktıklarında sil
+    const passedIntersection = this.checkPassedIntersection();
+    if (!passedIntersection) return false; // Henüz kavşağı geçmediyse asla silme
+    
+    // Kavşağı geçtikten sonra çok uzağa gittiyse sil
+    return this.x < -150 || this.x > canvas.width + 150 || 
+           this.y < -150 || this.y > canvas.height + 150;
   }
   
   draw() {
@@ -570,23 +560,49 @@ function drawLight(x, y, state) {
   }
 }
 
-function spawnVehicles() {
-  if (dataIndex < TRAFFIC_DATA.length && simTime >= nextSpawnTime) {
-    const data = TRAFFIC_DATA[dataIndex];
+function spawnVehicles(dt) {
+  for (let i = 0; i < TRAFFIC_DATA.length; i++) {
+    const data = TRAFFIC_DATA[i];
+    const spawnKey = `${i}-${data.time}-${data.direction}`;
     
-    // Araçları sırayla spawn et - ekran dışından başlayarak
-    for (let i = 0; i < data.count; i++) {
-      setTimeout(() => {
-        const vehicle = new Vehicle(data.direction);
-        vehicles.push(vehicle);
-      }, i * 500); // Her araç 0.5 saniye arayla spawn olur
-    }
-    
-    dataIndex++;
-    if (dataIndex < TRAFFIC_DATA.length) {
-      nextSpawnTime = TRAFFIC_DATA[dataIndex].time;
+    if (!processedSpawns.has(spawnKey) && simTime >= data.time) {
+      processedSpawns.add(spawnKey);
+      
+      for (let j = 0; j < data.count; j++) {
+        spawnQueue.push({
+          direction: data.direction,
+          spawnTime: simTime + (j * 0.8), // Biraz daha uzun aralık
+          offset: j * 70 // Daha fazla boşluk
+        });
+      }
     }
   }
+  
+  spawnQueue = spawnQueue.filter(item => {
+    if (simTime >= item.spawnTime) {
+      const vehicle = new Vehicle(item.direction);
+      
+      // Araçları ekran dışında yerleştir
+      switch(item.direction) {
+        case 'N':
+          vehicle.y = -120 - item.offset; // Daha uzaktan başla
+          break;
+        case 'S':
+          vehicle.y = canvas.height + 120 + item.offset;
+          break;
+        case 'E':
+          vehicle.x = canvas.width + 120 + item.offset;
+          break;
+        case 'W':
+          vehicle.x = -120 - item.offset;
+          break;
+      }
+      
+      vehicles.push(vehicle);
+      return false;
+    }
+    return true;
+  });
 }
 
 function render(timestamp) {
@@ -596,9 +612,8 @@ function render(timestamp) {
   
   if (isRunning) {
     simTime += dt;
-    spawnVehicles();
+    spawnVehicles(dt);
     
-    // Işık durumunu hesapla (akıllı veya klasik)
     const lights = smartMode ? updateSmartLights(dt) : getClassicLightState(simTime);
     
     vehicles.forEach(v => v.update(dt, lights, vehicles));
@@ -630,7 +645,6 @@ function updateStats() {
   document.getElementById('ewCount').textContent = density.ewWaiting;
 }
 
-// Event listeners
 document.getElementById('startBtn').addEventListener('click', () => {
   isRunning = !isRunning;
   document.getElementById('startBtn').textContent = isRunning ? '⏸ Duraklat' : '▶ Başlat';
@@ -641,8 +655,8 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   isRunning = false;
   simTime = 0;
   lastTime = 0;
-  dataIndex = 0;
-  nextSpawnTime = TRAFFIC_DATA[0].time;
+  processedSpawns.clear();
+  spawnQueue = [];
   vehicles = [];
   passedVehicles = 0;
   vehicleIdCounter = 0;
@@ -659,7 +673,6 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 document.getElementById('smartMode').addEventListener('change', (e) => {
   smartMode = e.target.checked;
   if (smartMode) {
-    // Akıllı moda geçildiğinde sıfırla
     SMART_LIGHT.currentGreen = 'NS';
     SMART_LIGHT.timeInCurrentState = 0;
     SMART_LIGHT.isYellow = false;
@@ -667,7 +680,6 @@ document.getElementById('smartMode').addEventListener('change', (e) => {
   }
 });
 
-// Manuel araç ekleme (opsiyonel - HTML'de varsa çalışır)
 const dirButtons = document.querySelectorAll('.dir-btn');
 if (dirButtons.length > 0) {
   dirButtons.forEach(btn => {
@@ -676,7 +688,6 @@ if (dirButtons.length > 0) {
       const countInput = document.getElementById('vehicleCount');
       const count = countInput ? parseInt(countInput.value) || 1 : 1;
       
-      // Araçları ekle
       for (let i = 0; i < count; i++) {
         const vehicle = new Vehicle(direction);
         const spacing = 60;
@@ -689,7 +700,6 @@ if (dirButtons.length > 0) {
         vehicles.push(vehicle);
       }
       
-      // Görsel feedback
       btn.style.transform = 'scale(0.95)';
       setTimeout(() => {
         btn.style.transform = '';
@@ -700,7 +710,6 @@ if (dirButtons.length > 0) {
   });
 }
 
-// Araç sayısı değiştiğinde göstergeyi güncelle
 const vehicleCountInput = document.getElementById('vehicleCount');
 const countDisplay = document.querySelector('.count-display');
 if (vehicleCountInput && countDisplay) {
@@ -710,7 +719,6 @@ if (vehicleCountInput && countDisplay) {
   });
 }
 
-// İlk çizim
 drawRoads();
 drawTrafficLights({ NS: 'red', EW: 'red' });
 render(0);
